@@ -1,0 +1,110 @@
+#!/usr/bin/haserl
+<%
+echo -en "content-type: text/plain\r\n\r\n"
+
+. /lib/functions/network.sh
+
+addr() {
+	local addr="$(ip -$1 address show dev $2 2> /dev/null | tr '/' ' '| awk '/inet/{ printf("%s ", $2); }')"
+	echo "${addr:--}"
+}
+
+default_gw() {
+	local prefix
+	if [ $1 -eq 6 ]; then
+		prefix="::/0"
+	else
+		prefix="0/0"
+	fi
+	ip -$1 route list $prefix dev $2 2> /dev/null | awk '{print($3); exit(0)}'
+}
+
+memory_usage_percent() {
+	meminfo=$(cat /proc/meminfo)
+	free=$(echo "$meminfo" | awk /^MemFree:/'{print($2)}')
+	buffers=$(echo "$meminfo" | awk /^Buffers:/'{print($2)}')
+	cached=$(echo "$meminfo" | awk /^Cached:/'{print($2)}')
+	total=$(echo "$meminfo" | awk /^MemTotal:/'{print($2)}')
+	echo $free $buffers $cached $total | awk '{ printf("%u%%", 100 * (1 - ($1 + $2 + $3) / $4))}'
+}
+
+rootfs_usage_percent() {
+	df / | awk '/^rootfs/{print($5); exit;}'
+}
+
+print() {
+	echo "	option $1 '$2'"
+}
+
+printList() {
+	for item in $2; do
+		echo "	list $1 '$item'"
+	done
+}
+
+vpn_server() {
+	local vpn=$(sockread /var/run/fastd.status < /dev/null 2> /dev/null | grep 'established' | sed 's/\(.*\)"name": "\([^"]*\)"\(.*\)established\(.*\)/\2/g')
+	echo "${vpn:--}"
+}
+
+#get physical device by config section
+wan="" lan="" freifunk=""
+network_get_physdev wan 'wan'
+network_get_physdev lan 'lan'
+network_get_physdev freifunk 'freifunk'
+
+#include LEDE version
+. /etc/openwrt_release
+
+echo "package misc"
+echo "config data 'data'"
+print 'mac' "$(uci -q get network.freifunk.macaddr)"
+printList 'freifunk_addr4' "$(addr 4 $freifunk)"
+printList 'freifunk_addr6' "$(addr 6 $freifunk)"
+printList 'lan_addr4' "$(addr 4 $lan)"
+printList 'lan_addr6' "$(addr 6 $lan)"
+printList 'wan_addr4' "$(addr 4 $wan)"
+printList 'wan_addr6' "$(addr 6 $wan)"
+
+up="$(uptime)"
+uptime="${up%%,*}"
+print 'load' "${up##*:}"
+print 'uptime' "${uptime##*up}"
+print 'memory_usage' "$(memory_usage_percent)"
+print 'rootfs_usage' "$(rootfs_usage_percent)"
+print 'uname' "$(uname -s -m -r)"
+print 'date' "$(date)"
+print 'vpn_server' "$(vpn_server)"
+
+if [ -n "$(default_gw 4 $wan)" -o  -n "$(default_gw 6 $wan)" ]; then
+	print 'has_internet' 'Ja'
+else
+	print 'has_internet' 'Nein'
+fi
+
+print 'node_count' "$((`cat /sys/kernel/debug/batman_adv/bat0/transtable_global | grep '^ [^ ]' | cut -b 39-55 | sort | uniq | wc -l 2> /dev/null`+1))"
+print 'neigh_count' "$(cat /sys/kernel/debug/batman_adv/bat0/originators | grep '^[0-9a-f]' | cut -b 37-53 | sort | uniq | wc -l 2> /dev/null)"
+print 'firmware_version' "$(uci -q get freifunk.@settings[0].version)"
+print 'fastd_version' "$(fastd --version 2> /dev/null | cut -d' ' -f 2)"
+print 'batman_version' "$(cat /sys/module/batman_adv/version 2> /dev/null)"
+print 'openwrt_version' "$DISTRIB_RELEASE"
+name="$(uci -q get freifunk.@settings[0].name)"
+print 'name' "${name:--}"
+print 'model' "$(cat /tmp/sysinfo/model 2> /dev/null)"
+print 'freifunk_user_count' "$(cat /sys/kernel/debug/batman_adv/bat0/transtable_local 2> /dev/null | grep -c 'W')"
+print 'lan_user_count' "$(cat /tmp/dhcp.lan.leases 2> /dev/null | sed '/^[0-9][0-9]* .* 192/!d' | wc -l)"
+
+print 'lan_rx_speed' "$(calc_speed.sh $lan rx 2> /dev/null)"
+print 'lan_tx_speed' "$(calc_speed.sh $lan tx 2> /dev/null)"
+print 'freifunk_rx_speed' "$(calc_speed.sh $freifunk rx 2> /dev/null)"
+print 'freifunk_tx_speed' "$(calc_speed.sh $freifunk tx 2> /dev/null)"
+print 'wan_rx_speed' "$(calc_speed.sh $wan rx 2> /dev/null)"
+print 'wan_tx_speed' "$(calc_speed.sh $wan tx 2> /dev/null)"
+
+print 'lan_rx_data' "$(cat /var/rx_data_$lan 2> /dev/null)"
+print 'lan_tx_data' "$(cat /var/tx_data_$lan 2> /dev/null)"
+print 'freifunk_rx_data' "$(cat /var/rx_data_$freifunk 2> /dev/null)"
+print 'freifunk_tx_data' "$(cat /var/tx_data_$freifunk 2> /dev/null)"
+print 'wan_rx_data' "$(cat /var/rx_data_$wan 2> /dev/null)"
+print 'wan_tx_data' "$(cat /var/tx_data_$wan 2> /dev/null)"
+%>

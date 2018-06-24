@@ -1,0 +1,24 @@
+#!/usr/bin/haserl
+<%
+echo -en "content-type: text/plain\r\n\r\n"
+
+. /lib/functions.sh
+
+case "$GET_func" in
+	get_settings)
+		uci -qn export freifunk
+		uci -qn export autoupdater
+		uci -qn export simple-tc
+		uci -qn export autoupdater
+		uci -qn export fastd
+
+		ula_prefix="$(uci -q get network.globals.ula_prefix)"
+		echo "package network"
+		echo "config globals 'globals'"
+		echo "	option ula_prefix '$ula_prefix'"
+	;;
+	*)
+		echo "Error: Unknown command: '$GET_func'"
+	;;
+esac
+%>

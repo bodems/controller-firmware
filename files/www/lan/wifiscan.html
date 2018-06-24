@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>WLAN-Scan</title>
+<meta charset="utf-8"/>
+<link rel="stylesheet" type="text/css" href="style.css" />
+<script src="shared.js"></script>
+<script src="wifiscan.js"></script>
+</head>
+<body onload="init();">
+
+<fieldset id="wifiscan">
+	<legend class="tr_wifi_scan"></legend>
+	<div>
+		<select id="wifiscan_selection"></select>
+		<button type="button" onclick="wifi_scan()" class="tr_start_scan"></button>
+	</div>
+	<table id="wifiscan_table" style="display: none">
+		<tr><th class="tr_name"></th><th class="tr_bssid"></th><th class="tr_channel"></th><th class="tr_signal"></th><th class="tr_type"></th></tr>
+		<tbody id="wifiscan_tbody"></tbody>
+	</table>
+</fieldset>
+
+</body>
+</html>

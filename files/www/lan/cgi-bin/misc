@@ -1,0 +1,33 @@
+#!/usr/bin/haserl
+<%
+echo -en "content-type: text/plain\r\n\r\n"
+
+case $GET_func in
+	reboot)
+		reboot
+		echo "Please wait. Restart is done ..."
+	;;
+	wifi_status)
+		wifi status
+	;;
+	wifiscan)
+		iw dev "$GET_device" scan 2> /dev/null | grep '^BSS \|SSID\|primary channel:\|signal\|capability\|MESH ID'
+	;;
+	set_config_file)
+		file_name="$GET_name"
+		file_data="$GET_data"
+
+		if echo "$file_data" > "/etc/config/$file_name" 2> /dev/null; then
+			echo "Settings were saved. Please restart."
+		else
+			echo "When saving an error has occurred. Please restart."
+		fi
+	;;
+	name)
+		uci -q get freifunk.@settings[0].name
+	;;
+	*)
+		echo "Error: Unknown command: '$GET_func'"
+	;;
+esac
+%>

@@ -1,0 +1,42 @@
+#!/usr/bin/haserl --upload-dir=/tmp --upload-limit=12000
+<%
+echo -en "content-type: text/plain\r\n\r\n"
+
+case "${GET_func:-$POST_func}" in
+	apply_firmware)
+		path="$POST_firmware"
+		keep="$POST_keep_config"
+
+		if [ ! -f "$path" ]; then
+			echo "Error: File not found."
+			exit 1
+		fi
+
+		if [ "$keep" = "yes" ]; then
+			args=""
+		else
+			args="-n"
+		fi
+
+		echo "Start update ...."
+
+		#apply OpenWrt or vendor image
+		sysupgrade $args $path
+	;;
+	lookup_upgrade)
+		autoupdater -c 2>&1
+	;;
+	lookup_and_apply_upgrade)
+		autoupdater -f 2>&1
+	;;
+	restore_firmware)
+		echo "All changes will be reset ..."
+		echo y | firstboot
+		echo "Router is restarting ..."
+		reboot
+	;;
+	*)
+		echo "Error: Unknown command: '$GET_func'"
+	;;
+esac
+%>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>Upgrade</title>
+<meta charset="utf-8"/>
+<link rel="stylesheet" type="text/css" href="style.css" />
+<script src="shared.js"></script>
+<script src="upgrade.js"></script>
+</head>
+<body onload="init();">
+
+<fieldset>
+	<legend class="tr_search_firmware"></legend>
+	<div>
+		<button type="button" onclick="lookup_upgrade()" class="tr_search"></button>
+		<button type="button" onclick="lookup_and_apply_upgrade()" class="tr_search_update"></button>
+	</div>
+	<div class="tr_updates_help"></div>
+</fieldset>
+<fieldset>
+	<legend class="tr_reset_router"></legend>
+	<div>
+		<button type="button" onclick="restore_firmware()" class="tr_reset"></button>
+	</div>
+	<div class="tr_reset_router_help"></div>
+</fieldset>
+<fieldset>
+	<legend class="tr_manual_update"></legend>
+	<div id="selected_image" style="display: none;"></div>
+	<div class="radio_option">
+		<form action="/cgi-bin/upgrade" enctype="multipart/form-data" method="post">
+		<label>
+			<input type="file" id="import_file" name="firmware" onchange="$('selected_image').innerHTML=this.value.replace(/^.*[\\\/](.*)$/, '$1');" style="visibility:hidden;position:absolute;top:-50;left:-50"/>
+			<input type="hidden" name="func" value="apply_firmware" />
+			<button type="button" onclick="$('import_file').click()" class="tr_select_image"></button>
+			<button type="submit" class="tr_send"></button>
+		</label>
+		<div style="margin-left: 2em;">
+			<input type="checkbox" name="keep_config" value="yes" checked>
+			<label class="tr_keep_config"></label>
+		</div>
+		</form>
+	</div>
+	<div class="tr_use_image_help"></div>
+</fieldset>
+
+
+</body>
+</html>
